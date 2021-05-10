@@ -187,6 +187,7 @@ interface GenArt721CoreContract {
   function mint(address _to, uint256 _projectId, address _by) external returns (uint256 tokenId);
 }
 
+import "./libs/Validator.sol";
 
 interface ERC20 {
   function balanceOf(address _owner) external view returns (uint balance);
@@ -198,9 +199,6 @@ interface BonusContract {
   function triggerBonus(address _to) external returns (bool);
   function bonusIsActive() external view returns (bool);
 }
-
-
-
 
 contract GenArt721Minter3 {
   using SafeMath for uint256;
@@ -215,6 +213,7 @@ contract GenArt721Minter3 {
   mapping(uint256 => bool) public contractFilterProject;
   mapping(address => mapping (uint256 => uint256)) public projectMintCounter;
   mapping(uint256 => uint256) public projectMintLimit;
+	mapping(uint256 => address) public validatorContracts;
 
   constructor(address _genArt721Address) public {
     artblocksContract=GenArt721CoreContract(_genArt721Address);
@@ -229,6 +228,10 @@ contract GenArt721Minter3 {
     uint256 remaining = ERC20(artblocksContract.projectIdToCurrencyAddress(_projectId)).allowance(msg.sender, address(this));
     return remaining;
   }
+
+	function setValidator(uint256 _projectId, address _validatorContract) public {
+		validatorContracts[_projectId] = _validatorContract;
+	}
 
   function setProjectMintLimit(uint256 _projectId,uint8 _limit) public {
     require(artblocksContract.isWhitelisted(msg.sender), "can only be set by admin");
@@ -283,6 +286,11 @@ contract GenArt721Minter3 {
         require(projectMintCounter[msg.sender][_projectId] < projectMintLimit[_projectId], "Reached minting limit");
         projectMintCounter[msg.sender][_projectId]++;
     }
+
+		address validatorAddress = validatorContracts[_projectId];
+		if (validatorAddress != address(0)) {
+			Validator(validatorAddress).validateMint(_to);
+		}
 
     uint256 tokenId = artblocksContract.mint(_to, _projectId, msg.sender);
 
