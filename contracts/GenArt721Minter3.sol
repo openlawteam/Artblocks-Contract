@@ -213,7 +213,7 @@ contract GenArt721Minter3 {
   mapping(uint256 => bool) public contractFilterProject;
   mapping(address => mapping (uint256 => uint256)) public projectMintCounter;
   mapping(uint256 => uint256) public projectMintLimit;
-	mapping(uint256 => address) public validatorContracts;
+  mapping(uint256 => address) public validatorContracts;
 
   constructor(address _genArt721Address) public {
     artblocksContract=GenArt721CoreContract(_genArt721Address);
@@ -229,9 +229,9 @@ contract GenArt721Minter3 {
     return remaining;
   }
 
-	function setValidator(uint256 _projectId, address _validatorContract) public {
-		validatorContracts[_projectId] = _validatorContract;
-	}
+  function setValidator(uint256 _projectId, address _validatorContract) public {
+    validatorContracts[_projectId] = _validatorContract;
+  }
 
   function setProjectMintLimit(uint256 _projectId,uint8 _limit) public {
     require(artblocksContract.isWhitelisted(msg.sender), "can only be set by admin");
@@ -287,10 +287,10 @@ contract GenArt721Minter3 {
         projectMintCounter[msg.sender][_projectId]++;
     }
 
-		address validatorAddress = validatorContracts[_projectId];
-		if (validatorAddress != address(0)) {
-			Validator(validatorAddress).validateMint(_to);
-		}
+    address validatorAddress = validatorContracts[_projectId];
+    if (validatorAddress != address(0)) {
+      Validator(validatorAddress).validateMint(_to);
+    }
 
     uint256 tokenId = artblocksContract.mint(_to, _projectId, msg.sender);
 

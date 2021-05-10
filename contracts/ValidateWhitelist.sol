@@ -8,18 +8,18 @@ import "./libs/Validator.sol";
  */
 contract ValidateWhitelist is Validator {
 
-	mapping(address => bool) public whitelist;
+  mapping(address => bool) public whitelist;
 
-	function addToWhitelist(address _address) public {
-		whitelist[_address] = true;
-	}
+  function addToWhitelist(address _address) public {
+    whitelist[_address] = true;
+  }
 
-	function removeFromWhitelist(address _address) public {
-		whitelist[_address] = false;
-	}
+  function removeFromWhitelist(address _address) public {
+    whitelist[_address] = false;
+  }
 
-	function validateMint(address _address) external view {
-		require(whitelist[_address], "address is not in the whitelist");
-	}
+  function validateMint(address _address) external view {
+    require(whitelist[_address], "address is not in the whitelist");
+  }
 }
 
