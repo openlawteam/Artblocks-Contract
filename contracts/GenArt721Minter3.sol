@@ -172,7 +172,17 @@ library Strings {
 
 pragma solidity ^0.5.0;
 
+/**
+ * Interface for a validation mechanism for mint destination addresses.
+ */
+interface Validator {
 
+  /**
+   * Validates that the given destination address is validate for a mint. Function
+   * should revert is validation fails.
+   */
+  function validateMint(address _to) external view;
+}
 
 interface GenArt721CoreContract {
   function isWhitelisted(address sender) external view returns (bool);
@@ -186,8 +196,6 @@ interface GenArt721CoreContract {
   function artblocksPercentage() external view returns (uint256);
   function mint(address _to, uint256 _projectId, address _by) external returns (uint256 tokenId);
 }
-
-import "./libs/Validator.sol";
 
 interface ERC20 {
   function balanceOf(address _owner) external view returns (uint balance);
@@ -230,6 +238,7 @@ contract GenArt721Minter3 {
   }
 
   function setValidator(uint256 _projectId, address _validatorContract) public {
+    require(artblocksContract.isWhitelisted(msg.sender), "can only be set by admin");
     validatorContracts[_projectId] = _validatorContract;
   }
 
