@@ -347,11 +347,18 @@ contract GenArt721Minter3 {
 
 function _splitFundsERC20(uint256 _projectId) internal {
     uint256 pricePerTokenInWei = artblocksContract.projectIdToPricePerTokenInWei(_projectId);
-    uint256 foundationAmount = pricePerTokenInWei.div(100).mul(artblocksContract.artblocksPercentage());
-    if (foundationAmount > 0) {
-      ERC20(artblocksContract.projectIdToCurrencyAddress(_projectId)).transferFrom(msg.sender, artblocksContract.artblocksAddress(), foundationAmount);
+    uint256 artBlocksAmount = pricePerTokenInWei.div(100).mul(artblocksContract.artblocksPercentage());
+    if (artBlocksAmount > 0) {
+      ERC20(artblocksContract.projectIdToCurrencyAddress(_projectId)).transferFrom(msg.sender, artblocksContract.artblocksAddress(), artBlocksAmount);
     }
-    uint256 projectFunds = pricePerTokenInWei.sub(foundationAmount);
+    uint256 remainingFunds = pricePerTokenInWei.sub(artBlocksAmount);
+
+		uint256 ownerFunds = remainingFunds.div(100).mul(ownerPercentage);
+		if (ownerFunds > 0) {
+      ERC20(artblocksContract.projectIdToCurrencyAddress(_projectId)).transferFrom(msg.sender, ownerAddress, ownerFunds);
+		}
+
+    uint256 projectFunds = pricePerTokenInWei.sub(artBlocksAmount).sub(ownerFunds);
     uint256 additionalPayeeAmount;
     if (artblocksContract.projectIdToAdditionalPayeePercentage(_projectId) > 0) {
       additionalPayeeAmount = projectFunds.div(100).mul(artblocksContract.projectIdToAdditionalPayeePercentage(_projectId));
