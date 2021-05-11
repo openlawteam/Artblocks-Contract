@@ -4,11 +4,11 @@ const {ZERO_ADDRESS} = constants;
 const {expect} = require('chai');
 
 const GenArt721Core = artifacts.require('GenArt721Core');
-const GenArt721Minter = artifacts.require('GenArt721Minter');
+const GenArt721Minter = artifacts.require('GenArt721Minter3');
 const Randomizer = artifacts.require('Randomizer');
 
 contract('GenArt721', function (accounts) {
-  const [owner, newOwner, artist, additional, snowfro] = accounts;
+  const [owner, newOwner, artist, additional, snowfro, buyer] = accounts;
 
   const name = 'Non Fungible Token';
   const symbol = 'NFT';
@@ -147,7 +147,29 @@ contract('GenArt721', function (accounts) {
       expect(await artistBalance.delta()).to.be.bignumber.equal(ether('0'));
     });
 
+    it('can create a token then funds distributed (with owner)', async function () {
+      const artistBalance = await balance.tracker(artist);
+      const ownerBalance = await balance.tracker(owner);
+      const snowfroBalance = await balance.tracker(snowfro);
+      const buyerBalance = await balance.tracker(buyer);
 
+			const ownerPayeePercentage = new BN('20');
+      await this.minter.setOwnerAddress(owner, {from: snowfro});
+      await this.minter.setOwnerPercentage(ownerPayeePercentage, {from: snowfro});
+      await this.token.toggleProjectIsPaused(projectZero, {from: artist});
+
+      // pricePerTokenInWei setup above to be 1 ETH
+      const tx = await this.minter.purchase(projectZero, {value: pricePerTokenInWei, from: buyer});
+      //expectEvent(tx, 'Transfer', {from: constants.ZERO_ADDRESS, to: owner, tokenId: firstTokenId});
+
+      this.projectZeroInfo = await this.token.projectTokenInfo(projectZero);
+      expect(this.projectZeroInfo.invocations).to.be.bignumber.equal('1');
+
+      expect(await snowfroBalance.delta()).to.be.bignumber.equal(ether('0.1'));
+      expect(await ownerBalance.delta()).to.be.bignumber.equal(ether('0.18'));
+      expect(await artistBalance.delta()).to.be.bignumber.equal(ether('0.9').sub(ether('0.18')));
+      expect(await buyerBalance.delta()).to.be.bignumber.equal(ether('1').mul(new BN('-1'))); // spent 1 ETH
+    });
 
 });
 });
