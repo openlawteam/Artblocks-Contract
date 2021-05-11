@@ -353,10 +353,10 @@ function _splitFundsERC20(uint256 _projectId) internal {
     }
     uint256 remainingFunds = pricePerTokenInWei.sub(artBlocksAmount);
 
-		uint256 ownerFunds = remainingFunds.div(100).mul(ownerPercentage);
-		if (ownerFunds > 0) {
+    uint256 ownerFunds = remainingFunds.div(100).mul(ownerPercentage);
+    if (ownerFunds > 0) {
       ERC20(artblocksContract.projectIdToCurrencyAddress(_projectId)).transferFrom(msg.sender, ownerAddress, ownerFunds);
-		}
+    }
 
     uint256 projectFunds = pricePerTokenInWei.sub(artBlocksAmount).sub(ownerFunds);
     uint256 additionalPayeeAmount;
