@@ -277,6 +277,12 @@ contract GenArt721Minter3 {
   }
 //remove public and payable to prevent public use of purchaseTo function
   function purchaseTo(address _to, uint256 _projectId) public payable returns(uint256 _tokenId){
+
+    address validatorAddress = validatorContracts[_projectId];
+    if (validatorAddress != address(0)) {
+      Validator(validatorAddress).validateMint(_to);
+    }
+
     if (keccak256(abi.encodePacked(artblocksContract.projectIdToCurrencySymbol(_projectId))) != keccak256(abi.encodePacked("ETH"))){
       require(msg.value==0, "this project accepts a different currency and cannot accept ETH");
       require(ERC20(artblocksContract.projectIdToCurrencyAddress(_projectId)).allowance(msg.sender, address(this)) >= artblocksContract.projectIdToPricePerTokenInWei(_projectId), "Insufficient Funds Approved for TX");
@@ -294,11 +300,6 @@ contract GenArt721Minter3 {
     if (projectMintLimit[_projectId] > 0) {
         require(projectMintCounter[msg.sender][_projectId] < projectMintLimit[_projectId], "Reached minting limit");
         projectMintCounter[msg.sender][_projectId]++;
-    }
-
-    address validatorAddress = validatorContracts[_projectId];
-    if (validatorAddress != address(0)) {
-      Validator(validatorAddress).validateMint(_to);
     }
 
     uint256 tokenId = artblocksContract.mint(_to, _projectId, msg.sender);

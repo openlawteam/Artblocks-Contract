@@ -6,6 +6,7 @@ const {expect} = require('chai');
 const GenArt721Core = artifacts.require('GenArt721Core');
 const GenArt721Minter = artifacts.require('GenArt721Minter3');
 const Randomizer = artifacts.require('Randomizer');
+const ValidateWhitelist = artifacts.require('ValidateWhitelist');
 
 contract('GenArt721', function (accounts) {
   const [owner, newOwner, artist, additional, snowfro, buyer] = accounts;
@@ -23,6 +24,7 @@ contract('GenArt721', function (accounts) {
     this.randomizer = await Randomizer.new();
     this.token = await GenArt721Core.new(name, symbol, this.randomizer.address, {from: snowfro});
     this.minter = await GenArt721Minter.new(this.token.address);
+    this.validator = await ValidateWhitelist.new(this.token.address);
 
     //await this.token.addWhitelisted(artist, {from: snowfro});
 
@@ -169,6 +171,21 @@ contract('GenArt721', function (accounts) {
       expect(await ownerBalance.delta()).to.be.bignumber.equal(ether('0.18'));
       expect(await artistBalance.delta()).to.be.bignumber.equal(ether('0.9').sub(ether('0.18')));
       expect(await buyerBalance.delta()).to.be.bignumber.equal(ether('1').mul(new BN('-1'))); // spent 1 ETH
+    });
+
+    it('can restrict minting by whitelist', async function () {
+
+			await this.minter.setValidator(projectZero, this.validator.address, {from: snowfro})
+
+      await this.token.toggleProjectIsPaused(projectZero, {from: artist});
+
+      expectRevert(this.minter.purchase(projectZero, {value: pricePerTokenInWei, from: buyer}), "address is not in the whitelist");
+
+			await this.validator.addToWhitelist(buyer, {from: snowfro})
+      await this.minter.purchase(projectZero, {value: pricePerTokenInWei, from: buyer});
+
+      this.projectZeroInfo = await this.token.projectTokenInfo(projectZero);
+      expect(this.projectZeroInfo.invocations).to.be.bignumber.equal('1');
     });
 
 });
