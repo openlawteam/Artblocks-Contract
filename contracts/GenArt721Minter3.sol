@@ -277,6 +277,12 @@ contract GenArt721Minter3 {
   }
 //remove public and payable to prevent public use of purchaseTo function
   function purchaseTo(address _to, uint256 _projectId) public payable returns(uint256 _tokenId){
+
+    address validatorAddress = validatorContracts[_projectId];
+    if (validatorAddress != address(0)) {
+      Validator(validatorAddress).validateMint(_to);
+    }
+
     if (keccak256(abi.encodePacked(artblocksContract.projectIdToCurrencySymbol(_projectId))) != keccak256(abi.encodePacked("ETH"))){
       require(msg.value==0, "this project accepts a different currency and cannot accept ETH");
       require(ERC20(artblocksContract.projectIdToCurrencyAddress(_projectId)).allowance(msg.sender, address(this)) >= artblocksContract.projectIdToPricePerTokenInWei(_projectId), "Insufficient Funds Approved for TX");
@@ -294,11 +300,6 @@ contract GenArt721Minter3 {
     if (projectMintLimit[_projectId] > 0) {
         require(projectMintCounter[msg.sender][_projectId] < projectMintLimit[_projectId], "Reached minting limit");
         projectMintCounter[msg.sender][_projectId]++;
-    }
-
-    address validatorAddress = validatorContracts[_projectId];
-    if (validatorAddress != address(0)) {
-      Validator(validatorAddress).validateMint(_to);
     }
 
     uint256 tokenId = artblocksContract.mint(_to, _projectId, msg.sender);
@@ -347,11 +348,18 @@ contract GenArt721Minter3 {
 
 function _splitFundsERC20(uint256 _projectId) internal {
     uint256 pricePerTokenInWei = artblocksContract.projectIdToPricePerTokenInWei(_projectId);
-    uint256 foundationAmount = pricePerTokenInWei.div(100).mul(artblocksContract.artblocksPercentage());
-    if (foundationAmount > 0) {
-      ERC20(artblocksContract.projectIdToCurrencyAddress(_projectId)).transferFrom(msg.sender, artblocksContract.artblocksAddress(), foundationAmount);
+    uint256 artBlocksAmount = pricePerTokenInWei.div(100).mul(artblocksContract.artblocksPercentage());
+    if (artBlocksAmount > 0) {
+      ERC20(artblocksContract.projectIdToCurrencyAddress(_projectId)).transferFrom(msg.sender, artblocksContract.artblocksAddress(), artBlocksAmount);
     }
-    uint256 projectFunds = pricePerTokenInWei.sub(foundationAmount);
+    uint256 remainingFunds = pricePerTokenInWei.sub(artBlocksAmount);
+
+    uint256 ownerFunds = remainingFunds.div(100).mul(ownerPercentage);
+    if (ownerFunds > 0) {
+      ERC20(artblocksContract.projectIdToCurrencyAddress(_projectId)).transferFrom(msg.sender, ownerAddress, ownerFunds);
+    }
+
+    uint256 projectFunds = pricePerTokenInWei.sub(artBlocksAmount).sub(ownerFunds);
     uint256 additionalPayeeAmount;
     if (artblocksContract.projectIdToAdditionalPayeePercentage(_projectId) > 0) {
       additionalPayeeAmount = projectFunds.div(100).mul(artblocksContract.projectIdToAdditionalPayeePercentage(_projectId));
