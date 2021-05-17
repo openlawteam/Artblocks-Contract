@@ -1,4 +1,5 @@
 const {BigNumber} = require('ethers');
+var prompt = require('prompt-sync')();
 
 async function main() {
   const [deployer] = await ethers.getSigners();
